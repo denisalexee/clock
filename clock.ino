@@ -56,6 +56,7 @@ bool flagTime = 0;
 #define SERVICE_UUID                 "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
 #define CHARACTERISTIC_TIME_RX_UUID  "beb5483e-36e1-4688-b7f5-ea07361b26a8"
 #define CHARACTERISTIC_TIME_TX_UUID  "60171725-f8a0-41b9-809d-c2044db71d8f"
+
 extern "C" {
 uint8_t temprature_sens_read();
 }
@@ -82,6 +83,30 @@ class MyCallbacks: public BLECharacteristicCallbacks {
 
         Serial.println();
         Serial.println("*********");
+        Serial.println(rxValue.length());
+        Serial.println("*********");
+        if (rxValue.length() == 14){
+          Time = rxValue.c_str();
+          day = Time.substring(0,2).toInt();
+          week = Time[2] - '0';
+          month = Time.substring(3,5).toInt();
+          century = Time[5] - '0';
+          year = Time.substring(6,8).toInt();
+          hour = Time.substring(8,10).toInt();
+          minute = Time.substring(10,12).toInt();
+          second = Time.substring(12,14).toInt();
+          Serial.print("day: ");
+          Serial.println(day);
+          Serial.println("Week: ");
+          Serial.println(week);
+          flagTime = 1;
+        }
+        if (flagTime == 1)
+        {
+          rtc.setDate(day, week, month, century, year);
+          rtc.setTime(hour, minute, second);
+          flagTime =0;
+        }
       }
     }
 };
@@ -145,7 +170,11 @@ void setup() {
 void loop() {
 
   if (deviceConnected) {
-    pTxCharacteristic->setValue(&txValue, 1);
+    String val = dm + hm;
+    unsigned char* buf = new unsigned char[20];
+    val.getBytes(buf, 20, 0);
+    const char *str2 = (const char*)buf;
+    pTxCharacteristic->setValue(str2);
     pTxCharacteristic->notify();
     txValue++;
 		delay(10); // bluetooth stack will go into congestion, if too many packets are sent
@@ -187,118 +216,6 @@ void loop() {
   delay(10000);
 }
 
-
-
-
-
-
-// class ElemCallbacs : public BLECharacteristicCallbacks {
-//   void onWrite(BLECharacteristic *pCharacteristic) {
-//       std::string value1 = pCharacteristic->getValue();
-//        }
-// };
-
-// class ElemCallbacsTime : public BLECharacteristicCallbacks {
-//   void onWrite(BLECharacteristic *pCharacteristic) {
-//       std::string rxValue = pCharacteristic->getValue();
-//       if (rxValue.length() > 0) {
-//         Time = rxValue.c_str();
-//         day = Time.substring(0,2).toInt();
-//         week = Time[2] - '0';
-//         month = Time.substring(3,5).toInt();
-//         century = Time[5] - '0';
-//         year = Time.substring(6,8).toInt();
-//         hour = Time.substring(8,10).toInt();
-//         minute = Time.substring(10,12).toInt();
-//         second = Time.substring(12,14).toInt();
-//       }
-//       flagTime = 1;
-//        }
-// };
-
-
-
-// void setup()
-// {
-//   Serial.begin(115200); 
-  
-//   // ESP_BT.begin("ESP32_Temper");
-//   // String devName = "Clock";
-//   // BLEDevice::init( "Clock");
-//   // BLEServer *pServer = BLEDevice::createServer();
-//   // pServer->setCallbacks(new MyServerCallbacks());
-//   // BLEService *pService = pServer->createService(SERVICE_UUID);
-//   // pTime= pService->createCharacteristic(CHARACTERISTIC_TIME_UUID,BLECharacteristic::PROPERTY_READ| BLECharacteristic::PROPERTY_WRITE);
-//   // pTime->setCallbacks(new ElemCallbacsTime());
-//   //pTxTime = pService->createCharacteristic(
-//   //                  CHARACTERISTIC_TIME_TX_UUID,
-//   //                  BLECharacteristic::PROPERTY_NOTIFY
-//   //                );
-//   //pTxTime->addDescriptor(new BLE2902());
-
-//   // BLEAdvertising *pAdvertising = pServer->getAdvertising();
-
-//   // BLEAdvertisementData adv;
-//   // adv.setName(devName.c_str());
-//   // pAdvertising->setAdvertisementData(adv);
-
-//   // BLEAdvertisementData adv2;
-//   // adv2.setCompleteServices(BLEUUID(SERVICE_UUID));
-//   // pAdvertising->setScanResponseData(adv2);
-
-//   // pAdvertising->start();
-
-  
-//   // pinMode(RES, OUTPUT);
-//   // digitalWrite(RES,HIGH);
-//   // delay(1000); 
-//   // digitalWrite(RES, LOW);
-//   // //             инициализация
-//   // digitalWrite(RES, LOW);
-//   // delay(1000);
-//   // digitalWrite(RES,HIGH);  
-  
-
-// }
-
-// void loop()
-// {
-//   // if (deviceConnected) {
-//   //     String val = dm + hm;
-//   //       unsigned char* buf = new unsigned char[20];
-//   //       val.getBytes(buf, 20, 0);
-//   //       const char *str2 = (const char*)buf;
-//   //      // pTxTime ->setValue(str2);
-//   //      // pTxTime ->notify();
-        
-//   //   }
-
-  
-//  // ESP_BT.print("Hello World");
-//  // ESP_BT.print("Time:");
-//   //ESP_BT.print(millis());
-//  // ESP_BT.print(" Temperature:");
-//  // ESP_BT.print(temp, 1);
-// //  ESP_BT.print("C");
-// //  ESP_BT.print(" Humidity:");
-// //  ESP_BT.print(humd, 1);
-// //  ESP_BT.print("%");
-// // ESP_BT.print("Temperature CPU: ");
-//   // Convert raw temperature in F to Celsius degrees
-// //  ESP_BT.print(CPU,1);
-// //  ESP_BT.print(" C");
-// //  ESP_BT.println();
-// // if (flagTime == 1)
-// //       {
-// //         rtc.setDate(day, week, month, century, year);
-// //         rtc.setTime(hour, minute, second);
-// //         flagTime =0;
-// //       }
- 
-  
-// //   
-// }
-
 void printTest(const float& t,const float& h, const float& cpu ) {
   oled.clear();
   char data0[] = "Temp: ";
@@ -312,12 +229,6 @@ void printTest(const float& t,const float& h, const float& cpu ) {
   oled.println(h);
   oled.print(data2);
   oled.println(cpu);
-  //oled.invertText(true);
-  //oled.println(data2);
-  //oled.println(data3);
-  //oled.invertText(false);
   oled.println(dm+" "+hm);
   oled.update();
-  
-  //delay(5000);
-}
+ }
