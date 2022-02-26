@@ -25,7 +25,8 @@ HTU21D myHumidity;
 GyverOLED<SSH1106_128x64> oled;
 Rtc_Pcf8563 rtc;
 BLEServer *pServer = NULL;
-BLECharacteristic * pTxCharacteristic;
+BLECharacteristic *pTxCharacteristic;
+BLECharacteristic *pTxTimeCharacteristic;
 bool deviceConnected = false;
 bool oldDeviceConnected = false;
 uint8_t txValue = 0;
@@ -42,8 +43,8 @@ byte year = 21;
 byte hour = 0;
 byte minute = 0;
 byte second = 0;
-BLECharacteristic *pTime;
-BLECharacteristic *pTxTime ;
+// BLECharacteristic *pTime;
+// BLECharacteristic *pTxTime ;
 bool flagTime = 0;
 
 #define TM_BUTTON 100                            // Минимальный таймаут между событиями нажатия кнопки
@@ -56,6 +57,8 @@ bool flagTime = 0;
 #define SERVICE_UUID                 "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
 #define CHARACTERISTIC_TIME_RX_UUID  "beb5483e-36e1-4688-b7f5-ea07361b26a8"
 #define CHARACTERISTIC_TIME_TX_UUID  "60171725-f8a0-41b9-809d-c2044db71d8f"
+#define CHARACTERISTIC_TEMP_TX_UUID  "bcdea365-b767-48a9-aa06-57c19859c502"
+
 
 extern "C" {
 uint8_t temprature_sens_read();
@@ -133,6 +136,12 @@ void setup() {
                       
   pTxCharacteristic->addDescriptor(new BLE2902());
 
+  pTxTimeCharacteristic = pService->createCharacteristic(
+										CHARACTERISTIC_TEMP_TX_UUID,
+										BLECharacteristic::PROPERTY_NOTIFY
+									);
+  pTxTimeCharacteristic->addDescriptor(new BLE2902());
+
   BLECharacteristic * pRxCharacteristic = pService->createCharacteristic(
 											CHARACTERISTIC_TIME_RX_UUID,
 											BLECharacteristic::PROPERTY_WRITE
@@ -168,14 +177,23 @@ void setup() {
 }
 
 void loop() {
+  float humd = myHumidity.readHumidity();
+  float temp = myHumidity.readTemperature();
+  float CPU = (temprature_sens_read() - 32) / 1.8;
 
   if (deviceConnected) {
-    String val = dm + hm;
+    String val = dm +" "+ hm;
     unsigned char* buf = new unsigned char[20];
+
     val.getBytes(buf, 20, 0);
     const char *str2 = (const char*)buf;
     pTxCharacteristic->setValue(str2);
     pTxCharacteristic->notify();
+    
+    char x[1];                                                   //
+	  dtostrf(temp, 5/*Полная_длина_строки*/, 1/*Количество_символов_после_запятой*/,x);
+    pTxTimeCharacteristic ->setValue(x);
+    pTxTimeCharacteristic ->notify();
     txValue++;
 		delay(10); // bluetooth stack will go into congestion, if too many packets are sent
 	}
@@ -193,9 +211,7 @@ void loop() {
     oldDeviceConnected = deviceConnected;
   }
 
-  float humd = myHumidity.readHumidity();
-  float temp = myHumidity.readTemperature();
-  float CPU = (temprature_sens_read() - 32) / 1.8;
+  
   dm = rtc.formatDate();
   hm = rtc.formatTime(RTCC_TIME_HM);
   Serial.print("Time:");
