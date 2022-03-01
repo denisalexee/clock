@@ -1,15 +1,29 @@
 #include <Wire.h>
 #include "SparkFunHTU21D.h"
-#include "MAX30105.h"  
-#include "BluetoothSerial.h"
-#include <GyverOLED.h>
+#include "MAX30105.h"           // Библиотека пульсометра
+#include "BluetoothSerial.h"    // Библиотека обычного Bluetooth
+#include <GyverOLED.h>          // Библиотека экрана
+#include <Rtc_Pcf8563.h>        // Библиотека часов реального времени
+#include "MPU6050.h"            // Библиотека гироскоп
+#include "heartRate.h"
+#include "spo2_algorithm.h"  
+#include <FS.h>                // Доступ к файловой системе
+#include <SPIFFS.h>
+//----------------bitmap--------------------------
+#include "Still.h"
+#include "batt.h"
+#include "Bluetooth.h"
+#include "daw_x.h"
+#include "heart.h"
+#include "mist.h"
+#include "vibr.h"
 
 MAX30105 particleSensor;
 HTU21D myHumidity;
 BluetoothSerial ESP_BT;
 GyverOLED<SSH1106_128x64> oled;
 
-char Lorem_ipsum[] = "Lorem ipsum dolor sit amet, лорем ипсум долор сит амет привет народ ё, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip...";
+
 const int RES = 27;
 
 #ifdef __cplusplus
@@ -24,21 +38,63 @@ uint8_t temprature_sens_read();
 
 uint8_t temprature_sens_read();
 
+
 void setup()
 {
-  Serial.begin(115200);
+  Serial.begin(115200); 
+  Serial.println("Battary_low");
+  oled.init();
+  oled.clear();
+  oled.drawBitmap(104,0,batt_low_23x10,23,10);
+  oled.drawBitmap(90,0,heart_on_12x10,12,10);
+  oled.drawBitmap(70,0,Daw_12x10,12,10);
+  oled.drawBitmap(45,0,Mist_23x15,23,15);
+  oled.drawBitmap(30,0,Bluetooth_12x10,12,10);
+  oled.drawBitmap(10,0, Vibr_12x10,12,10);
+  oled.drawBitmap(48,20, Still_one_32x32,32,32);
+  oled.update();//, sizeof(Still_one)
+  delay(2000);
+
   ESP_BT.begin("ESP32_Temper");
   Serial.println("HTU21D Example!");
-  pinMode(RES, OUTPUT);
-  digitalWrite(RES,HIGH);
-  delay(1000); 
-  digitalWrite(RES, LOW);
-  //             инициализация
-  digitalWrite(RES, LOW);
+  oled.drawBitmap(48,20, Still_two_32x32,32,32);
+  oled.drawBitmap(104,0,batt_full_23x10,23,10,BITMAP_NORMAL, BUF_REPLACE);
+  oled.update();//, sizeof(Still_one)
   delay(1000);
-  digitalWrite(RES,HIGH);  
-
-  oled.init();  
+  oled.drawBitmap(48,20, Still_three_32x32,32,32,BITMAP_NORMAL, BUF_REPLACE);
+  oled.update();//, sizeof(Still_one)
+  delay(1000);
+  oled.drawBitmap(48,20, Still_four_32x32,32,32,BITMAP_NORMAL, BUF_REPLACE);
+  oled.update();//, sizeof(Still_one)
+  delay(1000);
+  oled.drawBitmap(48,20, Still_five_32x32,32,32,BITMAP_NORMAL, BUF_REPLACE);
+  oled.update();//, sizeof(Still_one)
+  delay(1000);
+  oled.drawBitmap(48,20, Still_six_32x32,32,32,BITMAP_NORMAL, BUF_REPLACE);
+  oled.update();//, sizeof(Still_one)
+  delay(1000);
+  oled.drawBitmap(48,20, Still_seven_32x32,32,32,BITMAP_NORMAL, BUF_REPLACE);
+  oled.update();//, sizeof(Still_one)
+  delay(1000);
+  oled.drawBitmap(48,20, Still_eight_32x32,32,32,BITMAP_NORMAL, BUF_REPLACE);
+  oled.update();//, sizeof(Still_one)
+  delay(1000);
+  oled.drawBitmap(48,20, Still_nine_32x32,32,32,BITMAP_NORMAL, BUF_REPLACE);
+  oled.update();//, sizeof(Still_one)
+  delay(1000);
+  oled.drawBitmap(48,20, Still_ten_32x32,32,32,BITMAP_NORMAL, BUF_REPLACE);
+  oled.update();//, sizeof(Still_one)
+  delay(1000);
+  oled.drawBitmap(48,20, Still_eleven_32x32,32,32,BITMAP_NORMAL, BUF_REPLACE);
+  oled.update();//, sizeof(Still_one)
+  delay(1000);
+  oled.drawBitmap(48,20, Still_twelve_32x32,32,32,BITMAP_NORMAL, BUF_REPLACE);
+  oled.update();//, sizeof(Still_one)
+  delay(1000);
+  oled.drawBitmap(48,20, Still_thirteen_32x32,32,32,BITMAP_NORMAL, BUF_REPLACE);
+  oled.update();//, sizeof(Still_one)
+  delay(1000);
+  
   myHumidity.begin();
 }
 
@@ -95,10 +151,10 @@ void printTest(const float& t,const float& h, const float& cpu ) {
   oled.println(h);
    oled.print(data2);
   oled.println(cpu);
-  oled.invertText(true);
+  //oled.invertText(true);
   //oled.println(data2);
   //oled.println(data3);
-  oled.invertText(false);
+  //oled.invertText(false);
   oled.update();
   //delay(5000);
 }
