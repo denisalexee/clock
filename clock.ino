@@ -21,7 +21,9 @@
 #include "Bluetooth.h"
 #include "daw_x.h"
 #include "heart.h"
-#include "mist.h"
+#include "mist_one.h"
+#include "mist_two.h"
+#include "mist_three.h"
 #include "vibr.h"
 
 
@@ -131,6 +133,18 @@ void setup() {
   pServer = BLEDevice::createServer();
   pServer->setCallbacks(new MyServerCallbacks());
 
+int NamePict[7][6] = {
+                     {104, 0, 23, 10,BITMAP_NORMAL, BUF_REPLACE},              // battery      ind = 0     
+                     {90, 0, 12, 10,BITMAP_NORMAL, BUF_REPLACE},                // heart       ind = 1
+                     {70, 0, 12, 10,BITMAP_NORMAL, BUF_REPLACE},                // bt       ind = 2
+                     {45, 0, 23, 15, BITMAP_NORMAL, BUF_REPLACE},               // Mist       ind = 3
+                     {30, 0, 12, 10,BITMAP_NORMAL, BUF_REPLACE},                // bt        ind = 4
+                     {10,0, 12, 10,BITMAP_NORMAL, BUF_REPLACE},                 // Vibrstion ind  =5
+                     {48,20,32,32, BITMAP_NORMAL, BUF_REPLACE}                  // Still and Text = 6
+                     };   
+
+
+
   // Create the BLE Service
   BLEService *pService = pServer->createService(SERVICE_UUID);
 
@@ -162,57 +176,45 @@ void setup() {
   pServer->getAdvertising()->start();
   Serial.println("Waiting a client connection to notify...");
 
+
   Serial.println("Battary_low");
   oled.init();
   oled.clear();
-  oled.drawBitmap(104,0,batt_low_23x10,23,10);
-  oled.drawBitmap(90,0,heart_on_12x10,12,10);
-  oled.drawBitmap(70,0,Daw_12x10,12,10);
-  oled.drawBitmap(45,0,Mist_23x15,23,15);
-  oled.drawBitmap(30,0,Bluetooth_12x10,12,10);
-  oled.drawBitmap(10,0, Vibr_12x10,12,10);
-  oled.drawBitmap(48,20, Still_one_32x32,32,32);
-  oled.update();//, sizeof(Still_one)
+  drawPictogr(batt_fifty_23x10,0);
+  drawPictogr(heart_on_12x10,1);
+  drawPictogr(Daw_12x10,2);
+  drawPictogr(mist_one_23x15,3);
+  drawPictogr(Bluetooth_12x10,4);
+  drawPictogr(Vibr_12x10,5);
+  drawPictogr(Still_one_32x32,6);
+ 
   delay(2000);
 
   ESP_BT.begin("ESP32_Temper");
   Serial.println("HTU21D Example!");
-  oled.drawBitmap(48,20, Still_two_32x32,32,32);
-  oled.drawBitmap(104,0,batt_full_23x10,23,10,BITMAP_NORMAL, BUF_REPLACE);
-  oled.update();//, sizeof(Still_one)
+  drawPictogr(Still_two_32x32,6);
+  drawPictogr(mist_two_23x15,3);
   delay(1000);
-  oled.drawBitmap(48,20, Still_three_32x32,32,32,BITMAP_NORMAL, BUF_REPLACE);
-  oled.update();//, sizeof(Still_one)
+  drawPictogr(Still_three_32x32,6);
+  drawPictogr(mist_three_23x15,3);
   delay(1000);
-  oled.drawBitmap(48,20, Still_four_32x32,32,32,BITMAP_NORMAL, BUF_REPLACE);
-  oled.update();//, sizeof(Still_one)
+  drawPictogr(Still_four_32x32,6);
   delay(1000);
-  oled.drawBitmap(48,20, Still_five_32x32,32,32,BITMAP_NORMAL, BUF_REPLACE);
-  oled.update();//, sizeof(Still_one)
+  drawPictogr(Still_fie_32x32,6);
   delay(1000);
-  oled.drawBitmap(48,20, Still_six_32x32,32,32,BITMAP_NORMAL, BUF_REPLACE);
-  oled.update();//, sizeof(Still_one)
+  drawPictogr(Still_sixe_32x32,6);
   delay(1000);
-  oled.drawBitmap(48,20, Still_seven_32x32,32,32,BITMAP_NORMAL, BUF_REPLACE);
-  oled.update();//, sizeof(Still_one)
+  drawPictogr(Still_seven_32x32,6);
   delay(1000);
-  oled.drawBitmap(48,20, Still_eight_32x32,32,32,BITMAP_NORMAL, BUF_REPLACE);
-  oled.update();//, sizeof(Still_one)
+  drawPictogr(Still_eight_32x32 ,6);
   delay(1000);
-  oled.drawBitmap(48,20, Still_nine_32x32,32,32,BITMAP_NORMAL, BUF_REPLACE);
-  oled.update();//, sizeof(Still_one)
+  drawPictogr(Still_nine_32x32 ,6);
   delay(1000);
-  oled.drawBitmap(48,20, Still_ten_32x32,32,32,BITMAP_NORMAL, BUF_REPLACE);
-  oled.update();//, sizeof(Still_one)
+  drawPictogr(Still_ten_32x32,6);
   delay(1000);
-  oled.drawBitmap(48,20, Still_eleven_32x32,32,32,BITMAP_NORMAL, BUF_REPLACE);
-  oled.update();//, sizeof(Still_one)
+  drawPictogr(Still_eleven_32x32 ,6);
   delay(1000);
-  oled.drawBitmap(48,20, Still_twelve_32x32,32,32,BITMAP_NORMAL, BUF_REPLACE);
-  oled.update();//, sizeof(Still_one)
-  delay(1000);
-  oled.drawBitmap(48,20, Still_thirteen_32x32,32,32,BITMAP_NORMAL, BUF_REPLACE);
-  oled.update();//, sizeof(Still_one)
+  drawPictogr(Still_twelve_32x32,6);
   delay(1000);
   
 
@@ -295,6 +297,20 @@ void printTest(const float& t,const float& h, const float& cpu ) {
   oled.println(h);
   oled.print(data2);
   oled.println(cpu);
-  oled.println(dm+" "+hm);
+
   oled.update();
- }
+  //delay(5000);
+}
+
+
+void drawPictogr(const unsigned char *Pictogr, unsigned int ind)
+{
+    unsigned int x = NamePict[ind][0];
+    unsigned int y = NamePict[ind][1];
+    unsigned int h = NamePict[ind][2];
+    unsigned int w = NamePict[ind][3];
+    oled.drawBitmap(x,y,Pictogr,h,w,  NamePict[ind][4],  NamePict[ind][5]);
+    oled.update();
+    
+}
+
