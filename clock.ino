@@ -121,18 +121,6 @@ class MyCallbacks: public BLECharacteristicCallbacks {
       }
     }
 };
-
-
-void setup() {
-  Serial.begin(115200);
-
-  // Create the BLE Device
-  BLEDevice::init("UART Service");
-
-  // Create the BLE Server
-  pServer = BLEDevice::createServer();
-  pServer->setCallbacks(new MyServerCallbacks());
-
 int NamePict[7][6] = {
                      {104, 0, 23, 10,BITMAP_NORMAL, BUF_REPLACE},              // battery      ind = 0     
                      {90, 0, 12, 10,BITMAP_NORMAL, BUF_REPLACE},                // heart       ind = 1
@@ -143,7 +131,15 @@ int NamePict[7][6] = {
                      {48,20,32,32, BITMAP_NORMAL, BUF_REPLACE}                  // Still and Text = 6
                      };   
 
+void setup() {
+  Serial.begin(115200);
 
+  // Create the BLE Device
+  BLEDevice::init("UART Service");
+
+  // Create the BLE Server
+  pServer = BLEDevice::createServer();
+  pServer->setCallbacks(new MyServerCallbacks());
 
   // Create the BLE Service
   BLEService *pService = pServer->createService(SERVICE_UUID);
@@ -176,8 +172,6 @@ int NamePict[7][6] = {
   pServer->getAdvertising()->start();
   Serial.println("Waiting a client connection to notify...");
 
-
-  Serial.println("Battary_low");
   oled.init();
   oled.clear();
   drawPictogr(batt_fifty_23x10,0);
@@ -190,7 +184,7 @@ int NamePict[7][6] = {
  
   delay(2000);
 
-  ESP_BT.begin("ESP32_Temper");
+  
   Serial.println("HTU21D Example!");
   drawPictogr(Still_two_32x32,6);
   drawPictogr(mist_two_23x15,3);
@@ -313,4 +307,3 @@ void drawPictogr(const unsigned char *Pictogr, unsigned int ind)
     oled.update();
     
 }
-
