@@ -40,7 +40,7 @@ BLEServer *pServer = NULL;
 BLECharacteristic *pTxCharacteristic;
 BLECharacteristic *pTxTimeCharacteristic;
 //BLECharacteristic *pTxminTempParCharacteristic;
-rxValue
+
 bool deviceConnected = false;
 bool oldDeviceConnected = false;
 
@@ -278,11 +278,11 @@ void setup() {
 									);
   pTxTimeCharacteristic->addDescriptor(new BLE2902());
 
-  pTxminTempParCharacteristic= pService->createCharacteristic(
-										CHARACTERISTIC_minTempPar_TX_UUID,
-										BLECharacteristic::PROPERTY_NOTIFY
-									);
-  pTxminTempParCharacteristic->addDescriptor(new BLE2902());
+//  pTxminTempParCharacteristic= pService->createCharacteristic(
+//										CHARACTERISTIC_minTempPar_TX_UUID,
+//										BLECharacteristic::PROPERTY_NOTIFY
+//									);
+//  pTxminTempParCharacteristic->addDescriptor(new BLE2902());
 
   BLECharacteristic * pRxCharacteristic = pService->createCharacteristic(
 											CHARACTERISTIC_TIME_RX_UUID,
@@ -715,8 +715,8 @@ void printTest(const float& t,const float& hu ) {
   unsigned int h = NamePict[7][2];
   unsigned int w = NamePict[7][3];
   oled.setScale(2); 
-  oled.clear(20,20,127,63);
-  oled.update(20,20,127,63);
+  oled.clear(20,20,127,60);
+  oled.update(20,20,127,60);
   oled.setCursorXY( x, y);
   switch (flagDisplay)
       {
