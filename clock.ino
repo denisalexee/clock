@@ -57,8 +57,6 @@ byte year = 21;
 byte hour = 0;
 byte minute = 0;
 byte second = 0;
-// BLECharacteristic *pTime;
-// BLECharacteristic *pTxTime ;
 bool flagTime = 0;
 
 // MPU6050
@@ -153,16 +151,16 @@ bool flagConn = 0;
 #define PIN_BUTTON2 27
 #define PIN_BUTTON3 12
 #define PIN_BUTTON4 19
-#define PIN_INPUT 35
-#define PIN_OUTPUT 11
+//#define PIN_INPUT 35
+//#define PIN_OUTPUT 11
 
 #define SERVICE_UUID                 "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
 #define CHARACTERISTIC_TIME_RX_UUID  "beb5483e-36e1-4688-b7f5-ea07361b26a8"
-#define CHARACTERISTIC_minTempPar_RX_UUID  "1b007df0-ac2d-4dc6-95fe-f7570ce23f0e"
+#define CHARACTERISTIC_TP_RX_UUID  "acd787aa-08f2-4e4f-9078-b97194585906"
 
 #define CHARACTERISTIC_TIME_TX_UUID  "60171725-f8a0-41b9-809d-c2044db71d8f"
 #define CHARACTERISTIC_TEMP_TX_UUID  "bcdea365-b767-48a9-aa06-57c19859c502"
-#define CHARACTERISTIC_minTempPar_TX_UUID  "e4f61e4e-fd5a-44c2-badf-ad1c3c19e027"
+#define CHARACTERISTIC_TP_TX_UUID  "669115d4-2f37-4678-8012-fe22376b8a49"
 
 
 extern "C" {
@@ -375,8 +373,8 @@ void setup() {
   pinMode (PIN_BUTTON2, INPUT);
   pinMode (PIN_BUTTON3, INPUT);
   pinMode (PIN_BUTTON4, INPUT);
-  pinMode(PIN_OUTPUT, OUTPUT);
-  xTaskCreateUniversal(taskButtons, "buttons", 4096, NULL, 2, NULL,1);                     // The task of working with the button is started 
+  //pinMode(PIN_OUTPUT, OUTPUT);
+  //xTaskCreateUniversal(taskButtons, "buttons", 4096, NULL, 2, NULL,1);                     // The task of working with the button is started 
   //ReadFILE_FLASH ();
   delay(500);
   drawPictogr(Still_eleven_32x32 ,6);
@@ -854,13 +852,13 @@ void taskButtons( void *pvParameters )
                   if( st4 == LOW )
                     { 
                       Serial.println("Button4 pressed"); 
-                      digitalWrite(PIN_OUTPUT, LOW);
+                     // digitalWrite(PIN_OUTPUT, LOW);
                     }
                   else 
                     { 
                       Serial.println("Button4 released");
                       action_Button4 = HIGH; 
-                      digitalWrite(PIN_OUTPUT, HIGH);
+                     // digitalWrite(PIN_OUTPUT, HIGH);
                     }
                 }                
 // Проверка что все четыре кнопки отработали
