@@ -54,6 +54,9 @@ byte second = 0;
 // BLECharacteristic *pTime;
 // BLECharacteristic *pTxTime ;
 bool flagTime = 0;
+float humd = 0;
+float temp =0;
+byte flagDisplay = 0;
 
 #define TM_BUTTON 100                            // Минимальный таймаут между событиями нажатия кнопки
 #define PIN_BUTTON1 34
@@ -66,6 +69,7 @@ bool flagTime = 0;
 #define CHARACTERISTIC_TIME_RX_UUID  "beb5483e-36e1-4688-b7f5-ea07361b26a8"
 #define CHARACTERISTIC_TIME_TX_UUID  "60171725-f8a0-41b9-809d-c2044db71d8f"
 #define CHARACTERISTIC_TEMP_TX_UUID  "bcdea365-b767-48a9-aa06-57c19859c502"
+
 
 
 extern "C" {
@@ -121,6 +125,8 @@ class MyCallbacks: public BLECharacteristicCallbacks {
       }
     }
 };
+
+
 int NamePict[7][6] = {
                      {104, 0, 23, 10,BITMAP_NORMAL, BUF_REPLACE},              // battery      ind = 0     
                      {90, 0, 12, 10,BITMAP_NORMAL, BUF_REPLACE},                // heart       ind = 1
@@ -134,43 +140,7 @@ int NamePict[7][6] = {
 void setup() {
   Serial.begin(115200);
 
-  // Create the BLE Device
-  BLEDevice::init("UART Service");
-
-  // Create the BLE Server
-  pServer = BLEDevice::createServer();
-  pServer->setCallbacks(new MyServerCallbacks());
-
-  // Create the BLE Service
-  BLEService *pService = pServer->createService(SERVICE_UUID);
-
-  // Create a BLE Characteristic
-  pTxCharacteristic = pService->createCharacteristic(
-										CHARACTERISTIC_TIME_TX_UUID,
-										BLECharacteristic::PROPERTY_NOTIFY
-									);
-                      
-  pTxCharacteristic->addDescriptor(new BLE2902());
-
-  pTxTimeCharacteristic = pService->createCharacteristic(
-										CHARACTERISTIC_TEMP_TX_UUID,
-										BLECharacteristic::PROPERTY_NOTIFY
-									);
-  pTxTimeCharacteristic->addDescriptor(new BLE2902());
-
-  BLECharacteristic * pRxCharacteristic = pService->createCharacteristic(
-											CHARACTERISTIC_TIME_RX_UUID,
-											BLECharacteristic::PROPERTY_WRITE
-										);
-
-  pRxCharacteristic->setCallbacks(new MyCallbacks());
-
-  // Start the service
-  pService->start();
-
-  // Start advertising
-  pServer->getAdvertising()->start();
-  Serial.println("Waiting a client connection to notify...");
+  
 
   oled.init();
   oled.clear();
@@ -182,35 +152,35 @@ void setup() {
   drawPictogr(Vibr_12x10,5);
   drawPictogr(Still_one_32x32,6);
  
-  delay(2000);
+  delay(100);
 
   
   Serial.println("HTU21D Example!");
   drawPictogr(Still_two_32x32,6);
   drawPictogr(mist_two_23x15,3);
-  delay(1000);
+  delay(100);
   drawPictogr(Still_three_32x32,6);
   drawPictogr(mist_three_23x15,3);
-  delay(1000);
+  delay(100);
   drawPictogr(Still_four_32x32,6);
-  delay(1000);
+  delay(100);
   drawPictogr(Still_fie_32x32,6);
-  delay(1000);
+  delay(100);
   drawPictogr(Still_sixe_32x32,6);
-  delay(1000);
+  delay(100);
   drawPictogr(Still_seven_32x32,6);
-  delay(1000);
+  delay(100);
   drawPictogr(Still_eight_32x32 ,6);
-  delay(1000);
+  delay(100);
   drawPictogr(Still_nine_32x32 ,6);
-  delay(1000);
+  delay(100);
   drawPictogr(Still_ten_32x32,6);
-  delay(1000);
+  delay(100);
   drawPictogr(Still_eleven_32x32 ,6);
-  delay(1000);
+  delay(100);
   drawPictogr(Still_twelve_32x32,6);
-  delay(1000);
-  
+  delay(100);
+  InitBLE();
 
   myHumidity.begin();
 /*----------Initializate clock---------*/
@@ -223,9 +193,12 @@ void setup() {
 }
 
 void loop() {
-  float humd = myHumidity.readHumidity();
-  float temp = myHumidity.readTemperature();
-  float CPU = (temprature_sens_read() - 32) / 1.8;
+  humd = myHumidity.readHumidity();
+  temp = myHumidity.readTemperature();
+//  float CPU = (temprature_sens_read() - 32) / 1.8;
+  dm = rtc.formatDate();
+  hm = rtc.formatTime(RTCC_TIME_HM);
+
 
   if (deviceConnected) {
     String val = dm +" "+ hm;
@@ -258,8 +231,7 @@ void loop() {
   }
 
   
-  dm = rtc.formatDate();
-  hm = rtc.formatTime(RTCC_TIME_HM);
+  
   Serial.print("Time:");
   Serial.print(millis());
   Serial.print(" Temperature:");
@@ -268,31 +240,71 @@ void loop() {
   Serial.print(" Humidity:");
   Serial.print(humd, 1);
   Serial.print("%");
-  printTest(temp, humd, CPU);
+  printTest();
   Serial.print("Temperature CPU: ");
   // Convert raw temperature in F to Celsius degrees
-  Serial.print(CPU);
+  //Serial.print(CPU);
   Serial.print(" C");
   Serial.println();
   Serial.print(dm+" "+hm);
   delay(10000);
 }
 
-void printTest(const float& t,const float& h, const float& cpu ) {
+void printTest() {
   oled.clear();
-  char data0[] = "Temp: ";
-  char data1[] = "Humi: ";
-  char data2[] = "CPU:  ";
-  oled.home();
-  oled.setScale(1);
-  oled.print(data0);
-  oled.println(t);
-  oled.print(data1);
-  oled.println(h);
-  oled.print(data2);
-  oled.println(cpu);
-
+  unsigned int x = NamePict[6][0];
+  unsigned int y = NamePict[6][1];
+  unsigned int h = NamePict[6][2];
+  unsigned int w = NamePict[6][3];
+  oled.setScale(2); 
+  //oled.drawBitmap(x,y,Pictogr,h,w,  NamePict[ind][4],  NamePict[ind][5]);
+  // oled.update(25,20,127,60);
+  oled.setCursorXY( x, y);
+  oled.print(hm);
   oled.update();
+
+
+
+
+  
+//  switch (flagDisplay)
+//      {
+//        case 0:
+//          {
+//            
+//            oled.print(hm);
+//            oled.update();
+//            break;
+//          }
+//        case 1:
+//          {
+//            char data[] = "Temp: ";
+//            oled.print(temp);
+//            oled.println(" C");
+//            oled.update();
+//            break;
+//          }
+//        case 2:
+//          {
+//            oled.print(humd);
+//            oled.println(" %");
+//            oled.update();
+//            break;
+//          }
+//        case 3:
+//          {
+////            String strbeatAvg = String(heartRate,0);
+////            //oled.print("AVG= ");
+////            oled.println(strbeatAvg);
+////            oled.update();
+//            break;
+//          }
+//          default: 
+//          {
+//            break;
+//          }
+//      }
+//  oled.update();
   //delay(5000);
 }
 
@@ -306,4 +318,45 @@ void drawPictogr(const unsigned char *Pictogr, unsigned int ind)
     oled.drawBitmap(x,y,Pictogr,h,w,  NamePict[ind][4],  NamePict[ind][5]);
     oled.update();
     
+}
+
+void InitBLE(){
+
+  // Create the BLE Device
+  BLEDevice::init("UART Service");
+
+  // Create the BLE Server
+  pServer = BLEDevice::createServer();
+  pServer->setCallbacks(new MyServerCallbacks());
+
+  // Create the BLE Service
+  BLEService *pService = pServer->createService(SERVICE_UUID);
+
+  // Create a BLE Characteristic
+  pTxCharacteristic = pService->createCharacteristic(
+                    CHARACTERISTIC_TIME_TX_UUID,
+                    BLECharacteristic::PROPERTY_NOTIFY
+                  );
+                      
+  pTxCharacteristic->addDescriptor(new BLE2902());
+
+  pTxTimeCharacteristic = pService->createCharacteristic(
+                    CHARACTERISTIC_TEMP_TX_UUID,
+                    BLECharacteristic::PROPERTY_NOTIFY
+                  );
+  pTxTimeCharacteristic->addDescriptor(new BLE2902());
+
+  BLECharacteristic * pRxCharacteristic = pService->createCharacteristic(
+                      CHARACTERISTIC_TIME_RX_UUID,
+                      BLECharacteristic::PROPERTY_WRITE
+                    );
+
+  pRxCharacteristic->setCallbacks(new MyCallbacks());
+
+  // Start the service
+  pService->start();
+
+  // Start advertising
+  pServer->getAdvertising()->start();
+  Serial.println("Waiting a client connection to notify...");
 }
