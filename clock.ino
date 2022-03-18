@@ -906,8 +906,8 @@ void acseler ()
     GYR = abs(gx) + abs(gy) + abs(gz);
     if (ACC > (maxACC) || GYR > maxGYR) 
       {
-        Serial.print("ACC = ");
-        Serial.println(ACC);
+        // Serial.print("ACC = ");
+        // Serial.println(ACC);
         flagACC = 1;
         currentMillisAcc = millis();
         maxACC = ACC;
@@ -919,6 +919,7 @@ void acseler ()
         if ((millis() - currentMillisAcc) > INTERVAL_ACC)
           {
             flagACC = 0;
+            currentMillisAcc = millis();
             maxACC = 0;
             maxGYR = 0;
           }
