@@ -1,7 +1,7 @@
 #include <Wire.h>
 #include "SparkFunHTU21D.h"
 #include "MAX30105.h"           // Библиотека пульсометра
-// #include "BluetoothSerial.h"    // Библиотека обычного Bluetooth
+
 #include <GyverOLED.h>          // Библиотека экрана
 #include <Rtc_Pcf8563.h>        // Библиотека часов реального времени
 #include "MPU6050.h"            // Библиотека гироскоп
@@ -21,14 +21,11 @@
 #include "Bluetooth.h"
 #include "daw_x.h"
 #include "heart.h"
-#include "mist_one.h"
 #include "mist_two.h"
-#include "mist_three.h"
 #include "vibr.h"
 
 
 HTU21D myHumidity;
-//BluetoothSerial ESP_BT;
 GyverOLED<SSH1106_128x64> oled;
 Rtc_Pcf8563 rtc;
 File Data_array_file;
@@ -117,7 +114,7 @@ uint32_t intervalWriteFlash = 600000;
 uint32_t currentMilliisFLash = 0;
 
 /*    flags    */
-byte flagACC=1;                                   //  флаг срабатывания акселерометра
+byte flagACC=0;                                   //  флаг срабатывания акселерометра
 byte otlDisp = 0;                                 //  флаг обновления дисплея
 int8_t  validSPO2;                                  //  флаг валидности значений сенсора по SpO2
 int8_t  validHeartRate;                             //  флаг валидности значений сенсора по ЧСС
@@ -145,7 +142,7 @@ bool flageState = 0;                              //флаг текущего и
 bool flageSinxr = 0;
 bool flagConn = 0;
 
-
+#define INTERVAL_ACC 300000
 #define TM_BUTTON 100                            // Минимальный таймаут между событиями нажатия кнопки
 #define PIN_BUTTON1 34
 #define PIN_BUTTON2 27
@@ -237,6 +234,9 @@ class MyCallbacks: public BLECharacteristicCallbacks {
 //      }
 //    }
 //};
+// Display 128X64 
+
+
 
 int NamePict[8][6] = {
                      {104, 0, 23, 10,BITMAP_NORMAL, BUF_REPLACE},              // battery      ind = 0     
@@ -251,72 +251,19 @@ int NamePict[8][6] = {
 
 void setup() {
   Serial.begin(115200);
-
-  // Create the BLE Device
-  BLEDevice::init("UART Service");
-
-  // Create the BLE Server
-  pServer = BLEDevice::createServer();
-  pServer->setCallbacks(new MyServerCallbacks());
-
-  // Create the BLE Service
-  BLEService *pService = pServer->createService(SERVICE_UUID);
-
-  // Create a BLE Characteristic
-  pTxCharacteristic = pService->createCharacteristic(
-										CHARACTERISTIC_TIME_TX_UUID,
-										BLECharacteristic::PROPERTY_NOTIFY
-									);
-                      
-  pTxCharacteristic->addDescriptor(new BLE2902());
-
-  pTxTimeCharacteristic = pService->createCharacteristic(
-										CHARACTERISTIC_TEMP_TX_UUID,
-										BLECharacteristic::PROPERTY_NOTIFY
-									);
-  pTxTimeCharacteristic->addDescriptor(new BLE2902());
-
-//  pTxminTempParCharacteristic= pService->createCharacteristic(
-//										CHARACTERISTIC_minTempPar_TX_UUID,
-//										BLECharacteristic::PROPERTY_NOTIFY
-//									);
-//  pTxminTempParCharacteristic->addDescriptor(new BLE2902());
-
-  BLECharacteristic * pRxCharacteristic = pService->createCharacteristic(
-											CHARACTERISTIC_TIME_RX_UUID,
-											BLECharacteristic::PROPERTY_WRITE
-										);
-
-  pRxCharacteristic->setCallbacks(new MyCallbacks());
-
-//  BLECharacteristic * pRxTCharacteristic = pService->createCharacteristic(
-//											CHARACTERISTIC_minTempPar_RX_UUID,
-//											BLECharacteristic::PROPERTY_WRITE
-//										);
-//
-//  pRxTCharacteristic->setCallbacks(new MyCallbacksTempPar());
-
-  // Start the service
-  pService->start();
-
-  // Start advertising
-  pServer->getAdvertising()->start();
-  Serial.println("Waiting a client connection to notify...");
-
+  initBLE();
   oled.init();
   oled.clear();
   drawPictogr(batt_fifty_23x10,0);
   drawPictogr(heart_on_12x10,1);
   drawPictogr(Daw_12x10,2);
-  drawPictogr(mist_one_23x15,3);
+  drawPictogr(mist_two_23x15,3);
   drawPictogr(Bluetooth_12x10,4);
   drawPictogr(Vibr_12x10,5);
   drawPictogr(Still_one_32x32,6);
- 
-  delay(500);
-  
+  delay(250);
   drawPictogr(Still_two_32x32,6);
-  drawPictogr(mist_two_23x15,3);
+  
   // initializing the gyroscope
   mpu.initialize();
   mpu.getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
@@ -327,16 +274,15 @@ void setup() {
         if (ACC > maxACC) maxACC = ACC;
         if (GYR > maxGYR) maxGYR = GYR;
       }
-  delay(500);
+  delay(250);
   drawPictogr(Still_three_32x32,6);
-  drawPictogr(mist_three_23x15,3);
-  delay(500);
+  delay(250);
   drawPictogr(Still_four_32x32,6);
   // initializing HTU21D
   myHumidity.begin();
-  delay(500);
+  delay(250);
   drawPictogr(Still_fie_32x32,6);
-  delay(500);
+  delay(250);
   drawPictogr(Still_sixe_32x32,6);
   /*----------Initializate clock---------*/
   rtc.initClock();
@@ -344,9 +290,9 @@ void setup() {
   rtc.setTime(hour, minute, second);
   dm = rtc.formatDate();
   hm = rtc.formatTime(RTCC_TIME_HM);
-  delay(500);
+  delay(250);
   drawPictogr(Still_seven_32x32,6);
-  delay(500);
+  delay(250);
   drawPictogr(Still_eight_32x32 ,6);
   // initializate MAX30105
   if (! PARTICLE_SENSOR.begin(Wire, I2C_SPEED_FAST))                  //  We initiate work with the module. If initialization failed, то
@@ -364,24 +310,24 @@ void setup() {
     // Set up the wanted parameters
     PARTICLE_SENSOR.setup(ledBrightness, sampleAverage, ledMode, sampleRate, pulseWidth, adcRange); //Configure sensor with these settings
   
-  delay(500);
+  delay(250);
   drawPictogr(Still_nine_32x32 ,6);
-  delay(1000);
+  delay(250);
   drawPictogr(Still_ten_32x32,6);
   // initializate bittom and flash
   pinMode (PIN_BUTTON1, INPUT);
   pinMode (PIN_BUTTON2, INPUT);
   pinMode (PIN_BUTTON3, INPUT);
   pinMode (PIN_BUTTON4, INPUT);
-  //pinMode(PIN_OUTPUT, OUTPUT);
+//  pinMode(PIN_OUTPUT, OUTPUT);
   //xTaskCreateUniversal(taskButtons, "buttons", 4096, NULL, 2, NULL,1);                     // The task of working with the button is started 
   //ReadFILE_FLASH ();
-  delay(500);
+  delay(250);
   drawPictogr(Still_eleven_32x32 ,6);
-  delay(500);
+  delay(250);
   drawPictogr(Still_twelve_32x32,6);
-  delay(500);
-  
+  delay(250);
+  oled.clear();
 }
 
 void loop() {
@@ -428,7 +374,7 @@ void loop() {
 
   //currentMillis = millis();
   mpu.getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
-  //acseler();
+  acseler();
 
    
   if (( millis() - currentMilliisFLash > intervalWriteFlash) and (flagPar == 1))
@@ -440,7 +386,7 @@ void loop() {
       }
     if ( flagPar == 1 and flagUpdatePar == 0) 
       {
-         drawPictogr(mist_one_23x15, 2);
+         drawPictogr(mist_two_23x15, 2);
          flagUpdatePar = 1;
          interval = 10000;
       }
@@ -448,7 +394,7 @@ void loop() {
       {
          if (flagPar == 0 and flagUpdatePar == 1)
           {
-            drawPictogr(mist_one_23x15, 2);
+            drawPictogr(mist_two_23x15, 2);
             flagUpdatePar = 0;
             interval = 30000;
           }
@@ -456,10 +402,12 @@ void loop() {
     if (flagACC == 1)
       {
         otlDisp = 0;
+        oled.setPower(1);
+        printTest(temperature, humidity);
         currentMilliisFLash = millis();
         if (currentMillis - previousMillis >= interval) 
           {
-              //mean_hrb();
+//              mean_hrb();
               humidity = myHumidity.readHumidity();
               previousTemperature = temperature;
               temperature =myHumidity.readTemperature();
@@ -495,9 +443,9 @@ void loop() {
               }
             else
               {
-                flagDisplay++;
-                 if (flagDisplay > disp) flagDisplay = 0;
-                previousMillis = currentMillis;
+                // flagDisplay++;
+                //  if (flagDisplay > disp) flagDisplay = 0;
+                // previousMillis = currentMillis;
                 printTest(temperature, humidity);
               }
           }
@@ -713,8 +661,8 @@ void printTest(const float& t,const float& hu ) {
   unsigned int h = NamePict[7][2];
   unsigned int w = NamePict[7][3];
   oled.setScale(2); 
-  oled.clear(20,20,127,60);
-  oled.update(20,20,127,60);
+  //oled.drawBitmap(x,y,Pictogr,h,w,  NamePict[ind][4],  NamePict[ind][5]);
+  oled.update(25,20,127,60);
   oled.setCursorXY( x, y);
   switch (flagDisplay)
       {
@@ -765,115 +713,115 @@ void drawPictogr(const unsigned char *Pictogr, unsigned int ind)
     
 }
 
-void IRAM_ATTR ISR_btn()
-  {
-     xSemaphoreGiveFromISR( btnSemaphore, NULL );        // Прерывание по кнопке, отпускаем семафор
-  }
+// void IRAM_ATTR ISR_btn()
+//   {
+//      xSemaphoreGiveFromISR( btnSemaphore, NULL );        // Прерывание по кнопке, отпускаем семафор
+//   }
 
-void taskButtons( void *pvParameters )
-  {
-    bool isISR     = true;
-    bool state_btn1 = true, state_btn2 = true, state_btn3 = true, state_btn4 = true;
-    btnSemaphore = xSemaphoreCreateBinary();              // Создаем семафор 
-    xSemaphoreTake( btnSemaphore, 100 );                  // Сразу "берем" семафор чтобы не было первого ложного срабатывания кнопки 
-    attachInterrupt(PIN_BUTTON1, ISR_btn, FALLING);       // Запускаем обработчик прерывания (кнопка замыкает GPIO на землю) на все кнопки
-    attachInterrupt(PIN_BUTTON2, ISR_btn, FALLING);   
-    attachInterrupt(PIN_BUTTON3, ISR_btn, FALLING);
-    attachInterrupt(PIN_BUTTON4, ISR_btn, FALLING);
-    while(true)
-      {
-        // Обработчик прерывания выключен, функция ждет окончания действия с кнопкой     
-        if( isISR )
-          {
+// void taskButtons( void *pvParameters )
+//   {
+//     bool isISR     = true;
+//     bool state_btn1 = true, state_btn2 = true, state_btn3 = true, state_btn4 = true;
+//     btnSemaphore = xSemaphoreCreateBinary();              // Создаем семафор 
+//     xSemaphoreTake( btnSemaphore, 100 );                  // Сразу "берем" семафор чтобы не было первого ложного срабатывания кнопки 
+//     attachInterrupt(PIN_BUTTON1, ISR_btn, FALLING);       // Запускаем обработчик прерывания (кнопка замыкает GPIO на землю) на все кнопки
+//     attachInterrupt(PIN_BUTTON2, ISR_btn, FALLING);   
+//     attachInterrupt(PIN_BUTTON3, ISR_btn, FALLING);
+//     attachInterrupt(PIN_BUTTON4, ISR_btn, FALLING);
+//     while(true)
+//       {
+//         // Обработчик прерывания выключен, функция ждет окончания действия с кнопкой     
+//         if( isISR )
+//           {
          
-            xSemaphoreTake( btnSemaphore, portMAX_DELAY );         // Ждем "отпускание" семафора
-            detachInterrupt(PIN_BUTTON1);                          // Отключаем прерывания по всем кнопкам
-            detachInterrupt(PIN_BUTTON2);
-            detachInterrupt(PIN_BUTTON3);
-            detachInterrupt(PIN_BUTTON4);
-            isISR = false;                                              // переводим задачу в цикл обработки кнопки
-           }
-        else 
-          {
-            bool st1 = digitalRead(PIN_BUTTON1);
-            bool st2 = digitalRead(PIN_BUTTON2);
-            bool st3 = digitalRead(PIN_BUTTON3);
-            bool st4 = digitalRead(PIN_BUTTON4);
-            if( st1 != state_btn1 )                                      // Проверка изменения состояния кнопки1 
-             {
-                state_btn1 = st1;
-                if( st1 == LOW )
-                  { 
-                    Serial.println("Button1 pressed"); 
-                  }
-                else 
-                  { 
-                    action_Button1 = HIGH;
-                    Serial.println("Button1 released"); 
-                  }
-              }        
-            if( st2 != state_btn2 )                                           // Проверка изменения состояния кнопки2
-              {  
-                state_btn2 = st2;
-                if( st2 == LOW )
-                  {
-                    Button2_pressed = HIGH; 
-                    Serial.println("Button2 pressed"); 
-                  }
-                else 
-                  {
-                    Button2_pressed = LOW;
-                    if (Button2_released == HIGH)
-                      {
-                        double_press = HIGH;
-                      }
-                    Button2_released = HIGH;
-                    Serial.println("Button2 released"); 
-                  }
-              }        
-           if( st3 != state_btn3 )// Проверка изменения состояния кнопки3
-              {
-                state_btn3 = st3;
-                if( st3 == LOW )
-                  { 
-                    Button3_pressed = HIGH;
-                    Serial.println("Button3 pressed"); 
-                   }
-                else 
-                  { 
-                    Button3_pressed = LOW;
-                    Button3_released = HIGH;
-                    Serial.println("Button3 released"); 
-                  }
-                } 
-             if( st4 != state_btn4 )// Проверка изменения состояния кнопки4
-               {
-                  state_btn4 = st4;
-                  if( st4 == LOW )
-                    { 
-                      Serial.println("Button4 pressed"); 
-                     // digitalWrite(PIN_OUTPUT, LOW);
-                    }
-                  else 
-                    { 
-                      Serial.println("Button4 released");
-                      action_Button4 = HIGH; 
-                     // digitalWrite(PIN_OUTPUT, HIGH);
-                    }
-                }                
-// Проверка что все четыре кнопки отработали
-             if( st1 == HIGH && st2 == HIGH && st3 == HIGH && st4 == HIGH )
-                { 
-                  attachInterrupt(PIN_BUTTON1, ISR_btn, FALLING);   
-                  attachInterrupt(PIN_BUTTON2, ISR_btn, FALLING);   
-                  attachInterrupt(PIN_BUTTON3, ISR_btn, FALLING);
-                  attachInterrupt(PIN_BUTTON4, ISR_btn, FALLING);
-                  isISR = true;
-                  }
-              vTaskDelay(100);
-          }
-      }
-  }
+//             xSemaphoreTake( btnSemaphore, portMAX_DELAY );         // Ждем "отпускание" семафора
+//             detachInterrupt(PIN_BUTTON1);                          // Отключаем прерывания по всем кнопкам
+//             detachInterrupt(PIN_BUTTON2);
+//             detachInterrupt(PIN_BUTTON3);
+//             detachInterrupt(PIN_BUTTON4);
+//             isISR = false;                                              // переводим задачу в цикл обработки кнопки
+//            }
+//         else 
+//           {
+//             bool st1 = digitalRead(PIN_BUTTON1);
+//             bool st2 = digitalRead(PIN_BUTTON2);
+//             bool st3 = digitalRead(PIN_BUTTON3);
+//             bool st4 = digitalRead(PIN_BUTTON4);
+//             if( st1 != state_btn1 )                                      // Проверка изменения состояния кнопки1 
+//              {
+//                 state_btn1 = st1;
+//                 if( st1 == LOW )
+//                   { 
+//                     Serial.println("Button1 pressed"); 
+//                   }
+//                 else 
+//                   { 
+//                     action_Button1 = HIGH;
+//                     Serial.println("Button1 released"); 
+//                   }
+//               }        
+//             if( st2 != state_btn2 )                                           // Проверка изменения состояния кнопки2
+//               {  
+//                 state_btn2 = st2;
+//                 if( st2 == LOW )
+//                   {
+//                     Button2_pressed = HIGH; 
+//                     Serial.println("Button2 pressed"); 
+//                   }
+//                 else 
+//                   {
+//                     Button2_pressed = LOW;
+//                     if (Button2_released == HIGH)
+//                       {
+//                         double_press = HIGH;
+//                       }
+//                     Button2_released = HIGH;
+//                     Serial.println("Button2 released"); 
+//                   }
+//               }        
+//            if( st3 != state_btn3 )// Проверка изменения состояния кнопки3
+//               {
+//                 state_btn3 = st3;
+//                 if( st3 == LOW )
+//                   { 
+//                     Button3_pressed = HIGH;
+//                     Serial.println("Button3 pressed"); 
+//                    }
+//                 else 
+//                   { 
+//                     Button3_pressed = LOW;
+//                     Button3_released = HIGH;
+//                     Serial.println("Button3 released"); 
+//                   }
+//                 } 
+//              if( st4 != state_btn4 )// Проверка изменения состояния кнопки4
+//                {
+//                   state_btn4 = st4;
+//                   if( st4 == LOW )
+//                     { 
+//                       Serial.println("Button4 pressed"); 
+//                      // digitalWrite(PIN_OUTPUT, LOW);
+//                     }
+//                   else 
+//                     { 
+//                       Serial.println("Button4 released");
+//                       action_Button4 = HIGH; 
+//                      // digitalWrite(PIN_OUTPUT, HIGH);
+//                     }
+//                 }                
+// // Проверка что все четыре кнопки отработали
+//              if( st1 == HIGH && st2 == HIGH && st3 == HIGH && st4 == HIGH )
+//                 { 
+//                   attachInterrupt(PIN_BUTTON1, ISR_btn, FALLING);   
+//                   attachInterrupt(PIN_BUTTON2, ISR_btn, FALLING);   
+//                   attachInterrupt(PIN_BUTTON3, ISR_btn, FALLING);
+//                   attachInterrupt(PIN_BUTTON4, ISR_btn, FALLING);
+//                   isISR = true;
+//                   }
+//               vTaskDelay(100);
+//           }
+//       }
+//   }
 
 void ReadFILE_FLASH ()
   {
@@ -896,4 +844,108 @@ void ReadFILE_FLASH ()
 //    //Serial.println(Data_array_file.size());
  SizeF = Data_array_file.size();
     Data_array_file.close();
+  }
+
+void initBLE()
+  {
+    // Create the BLE Device
+    BLEDevice::init("UART Service");
+
+    // Create the BLE Server
+    pServer = BLEDevice::createServer();
+    pServer->setCallbacks(new MyServerCallbacks());
+
+    // Create the BLE Service
+    BLEService *pService = pServer->createService(SERVICE_UUID);
+
+    // Create a BLE Characteristic
+    pTxCharacteristic = pService->createCharacteristic(
+				CHARACTERISTIC_TIME_TX_UUID,
+				BLECharacteristic::PROPERTY_NOTIFY
+				);
+                      
+    pTxCharacteristic->addDescriptor(new BLE2902());
+
+    pTxTimeCharacteristic = pService->createCharacteristic(
+				CHARACTERISTIC_TEMP_TX_UUID,
+				BLECharacteristic::PROPERTY_NOTIFY
+				);
+    pTxTimeCharacteristic->addDescriptor(new BLE2902());
+
+  //  pTxminTempParCharacteristic= pService->createCharacteristic(
+  //										CHARACTERISTIC_minTempPar_TX_UUID,
+  //										BLECharacteristic::PROPERTY_NOTIFY
+  //									);
+  //  pTxminTempParCharacteristic->addDescriptor(new BLE2902());
+
+    BLECharacteristic * pRxCharacteristic = pService->createCharacteristic(
+				CHARACTERISTIC_TIME_RX_UUID,
+				BLECharacteristic::PROPERTY_WRITE
+				);
+
+    pRxCharacteristic->setCallbacks(new MyCallbacks());
+
+  //  BLECharacteristic * pRxTCharacteristic = pService->createCharacteristic(
+  //											CHARACTERISTIC_minTempPar_RX_UUID,
+  //											BLECharacteristic::PROPERTY_WRITE
+  //										);
+  //
+  //  pRxTCharacteristic->setCallbacks(new MyCallbacksTempPar());
+
+    // Start the service
+    pService->start();
+
+    // Start advertising
+    pServer->getAdvertising()->start();
+    Serial.println("Waiting a client connection to notify...");
+  }
+void acseler ()
+  {
+   
+    ACC = abs(ax) + abs(ay) + abs(az);
+    GYR = abs(gx) + abs(gy) + abs(gz);
+    if (ACC > (maxACC) || GYR > maxGYR) 
+      {
+        Serial.print("ACC = ");
+        Serial.println(ACC);
+        flagACC = 1;
+        currentMillisAcc = millis();
+        maxACC = ACC;
+        maxGYR = GYR;
+        //maxACC
+      }
+    else 
+      {
+        if ((millis() - currentMillisAcc) > INTERVAL_ACC)
+          {
+            flagACC = 0;
+            maxACC = 0;
+            maxGYR = 0;
+          }
+      }
+  }
+
+  void mean_hrb()
+  {
+    bufferLength = 100;                               //  Устанавливаем длину буфера равным 100 (куда будут записаны пакеты по 25 значений в течении 4 секунд)
+                                                      //  считываем первые 100 значений и определяем диапазон значений сигнала:
+    if (PARTICLE_SENSOR.getRed()>5000)
+      {                                                     
+        for (byte i = 0 ; i < bufferLength ; i++)     //  проходим в цикле по буферу и
+          {         
+            while (PARTICLE_SENSOR.available() == false)      //  отправляем сенсору запрос на получение новых данных
+            PARTICLE_SENSOR.check();
+            redBuffer[i] = PARTICLE_SENSOR.getIR();           //  Записываем в массив значения сенсора, полученные при работе с КРАСНЫМ светодиодом
+            irBuffer[i] = PARTICLE_SENSOR.getRed();           //  Записываем в массив значения сенсора, полученные при работе с ИК      светодиодом
+            PARTICLE_SENSOR.nextSample();                     //  Как только в буфер было записано 100 значений - отправляем сенсору команду начать вычислять значения ЧСС и SpO2
+          }
+        maxim_heart_rate_and_oxygen_saturation(irBuffer, bufferLength, redBuffer, &spo2, &validSPO2, &heartRate, &validHeartRate);
+        Serial.print("spo2");
+        Serial.println(spo2);
+          }
+    else
+      {
+        spo2 = 0;
+        heartRate = 0;  
+      }
   }
