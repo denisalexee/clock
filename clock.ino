@@ -23,6 +23,8 @@
 #include "heart.h"
 #include "mist_two.h"
 #include "vibr.h"
+#include "display_off.h"
+#include "quadr.h"
 
 
 HTU21D myHumidity;
@@ -41,7 +43,7 @@ BLECharacteristic *pTxminTempParCharacteristic;
 bool deviceConnected = false;
 bool oldDeviceConnected = false;
 
-
+void printTest(const float&,const float& );
 const int RES = 27;
 /* -------clock---------=*/
 String hm,dm;
@@ -155,11 +157,20 @@ bool flagConn = 0;
 #define SERVICE_UUID                 "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
 #define CHARACTERISTIC_TIME_RX_UUID  "beb5483e-36e1-4688-b7f5-ea07361b26a8"
 #define CHARACTERISTIC_TP_RX_UUID  "acd787aa-08f2-4e4f-9078-b97194585906"
+#define CHARACTERISTIC_MAXHEARTRATE_RX_UUID "0651b97e-afa8-4e65-a22e-7a6f1e72c2d7"
+#define CHARACTERISTIC_MAXTEMP_RX_UUID "2add7bcb-4e6c-492d-9cba-a28eea5d3713"
+#define CHARACTERISTIC_MAXTIME_RX_UUID "758caedf-9dc0-4859-a6fa-1fbf19c2ac73"
+#define CHARACTERISTIC_MAXDELTATEMP_RX_UUID "4aec83a2-71d6-40a3-9fca-d17b413b614e"
 
 #define CHARACTERISTIC_TIME_TX_UUID  "60171725-f8a0-41b9-809d-c2044db71d8f"
 #define CHARACTERISTIC_TEMP_TX_UUID  "bcdea365-b767-48a9-aa06-57c19859c502"
 #define CHARACTERISTIC_TP_TX_UUID  "669115d4-2f37-4678-8012-fe22376b8a49"
-
+#define CHARACTERISTIC_SPO2_TX_UUID "48e2d00f-20d6-4e53-8f87-c4f457882ca6"
+#define CHARACTERISTIC_HEARTRATE_TX_UUID "1911da6d-a03b-4e61-beb1-8fd65ff3a31b"
+#define CHARACTERISTIC_MAXHEARTRATE_TX_UUID "bd1903ba-51f2-4041-9e90-26de841d963a"
+#define CHARACTERISTIC_MAXTEMP_TX_UUID "a8e95656-cb08-4951-a096-198a70b6e370"
+#define CHARACTERISTIC_MAXTIME_TX_UUID "16b74285-4662-4960-a459-a81d49c7e8b5"
+#define CHARACTERISTIC_MAXDELTATEMP_TX_UUID "7ccdfac7-ff79-4712-a070-764db044c885"
 
 extern "C" {
 uint8_t temprature_sens_read();
@@ -210,6 +221,7 @@ class MyCallbacks: public BLECharacteristicCallbacks {
           rtc.setDate(day, week, month, century, year);
           rtc.setTime(hour, minute, second);
           flagTime =0;
+          printTest(temperature, humidity);
         }
       }
     }
@@ -239,7 +251,7 @@ class MyCallbacksTempPar: public BLECharacteristicCallbacks {
 
 
 
-int NamePict[8][6] = {
+int NamePict[10][6] = {
                      {104, 0, 23, 10,BITMAP_NORMAL, BUF_REPLACE},              // battery      ind = 0     
                      {90, 0, 12, 10,BITMAP_NORMAL, BUF_REPLACE},                // heart       ind = 1
                      {70, 0, 12, 10,BITMAP_NORMAL, BUF_REPLACE},                // bt       ind = 2
@@ -247,7 +259,9 @@ int NamePict[8][6] = {
                      {30, 0, 12, 10,BITMAP_NORMAL, BUF_REPLACE},                // bt        ind = 4
                      {10,0, 12, 10,BITMAP_NORMAL, BUF_REPLACE},                 // Vibrstion ind  =5
                      {48,20,32,32, BITMAP_NORMAL, BUF_REPLACE},                  // Still  = 6
-                     {20,30,107,43, BITMAP_NORMAL, BUF_REPLACE}                   // Text = 7
+                     {20,30,107,43, BITMAP_NORMAL, BUF_REPLACE},                   // Text = 7
+                     {0,20,127,43,BITMAP_INVERT, BUF_REPLACE},                    // pictogram for text = 8
+                     {0,0,127,63,BITMAP_NORMAL, BUF_REPLACE}                    // Display off = 9
                      };   
 
 void setup() {
@@ -329,6 +343,7 @@ void setup() {
   drawPictogr(Still_twelve_32x32,6);
   delay(250);
   oled.clear();
+  printTest(temperature, humidity);
 }
 
 void loop() {
@@ -346,16 +361,16 @@ void loop() {
     pTxCharacteristic->setValue(str2);
     pTxCharacteristic->notify();
     
-    char x[8];                                                   //
+    char x[8];                                                   // Temperatyre for now
 	  dtostrf(temperature, 5, 1,x);
     pTxTimeCharacteristic ->setValue((std::string)x);
     pTxTimeCharacteristic ->notify();
    
-    char ax[8];                                                   //
+    char ax[8];                                                   //Minimum temp for sayna
 
-   sprintf(ax, "%d", minTempPar);
-   pTxminTempParCharacteristic ->setValue((std::string)ax);
-   pTxminTempParCharacteristic ->notify();
+    sprintf(ax, "%d", minTempPar);
+    pTxminTempParCharacteristic ->setValue((std::string)ax);
+    pTxminTempParCharacteristic ->notify();
 
 		delay(10); // bluetooth stack will go into congestion, if too many packets are sent
 	}
@@ -403,19 +418,17 @@ void loop() {
     if (flagACC == 1)
       {
         otlDisp = 0;
-        oled.setPower(1);
-        printTest(temperature, humidity);
         currentMilliisFLash = millis();
         if (currentMillis - previousMillis >= interval) 
           {
-//              mean_hrb();
-              humidity = myHumidity.readHumidity();
-              previousTemperature = temperature;
-              temperature =myHumidity.readTemperature();
-              dm = rtc.formatDate();
-              hm = rtc.formatTime(RTCC_TIME_HM);
+             mean_hrb();
+             humidity = myHumidity.readHumidity();
+             previousTemperature = temperature;
+             temperature =myHumidity.readTemperature();
+             dm = rtc.formatDate();
+             hm = rtc.formatTime(RTCC_TIME_HM);
            }
-        if (heartRate > 0 )
+        if (heartRate > 40 )
           {
             disp = 3;
           }
@@ -424,9 +437,11 @@ void loop() {
             disp = 2;
           }
         
-        if ((abs(temperature -previousTemperature) > deltaTemp) or (temperature > minTempPar) )
+        if (((temperature -previousTemperature) > deltaTemp) and (temperature > minTempPar) )
             {
               flagPar= 1;
+              Serial.print("Temper = ");
+              Serial.println(temperature);
             }
         else 
           {
@@ -441,12 +456,13 @@ void loop() {
                  flagDisplay++;
                  if (flagDisplay > disp) flagDisplay = 0;
                  printTest(temperature, humidity);
+                 
               }
             else
               {
                 // flagDisplay++;
                 //  if (flagDisplay > disp) flagDisplay = 0;
-                // previousMillis = currentMillis;
+                 previousMillis = currentMillis;
                 printTest(temperature, humidity);
               }
           }
@@ -467,9 +483,9 @@ if (action_Button1)
          //drawPictogr(vibr, 3);
          //Size_and_ReadFILE_FLASH ();               //ВРЕМЕННО ДЛЯ ПРОВЕРКИ ЧТЕНИЯ С FLASH  
          //Serial.println(SizeF);
-         flagDisplay++;
-         if (flagDisplay > disp) flagDisplay = 0;
-         printTest(temperature, humidity);
+//         flagDisplay++;
+//         if (flagDisplay > disp) flagDisplay = 0;
+//         printTest(temperature, humidity);
                        
        }   
     if  (state_BT == HIGH)
@@ -663,21 +679,19 @@ void printTest(const float& t,const float& hu ) {
   unsigned int h = NamePict[7][2];
   unsigned int w = NamePict[7][3];
   oled.setScale(2); 
-  //oled.drawBitmap(x,y,Pictogr,h,w,  NamePict[ind][4],  NamePict[ind][5]);
-  oled.update(25,20,127,60);
+  drawPictogr(quadr_127x43,8);
+  oled.update();
   oled.setCursorXY( x, y);
   switch (flagDisplay)
       {
         case 0:
           {
-            
             oled.print(hm); //
             oled.update();
             break;
           }
         case 1:
           {
-            char data[] = "Temp: ";
             oled.print(t);
             oled.println(" C");
             oled.update();
@@ -685,8 +699,6 @@ void printTest(const float& t,const float& hu ) {
           }
         case 2:
           {
-            char data[] = "Humi: ";
-            //oled.print(data);
             oled.print(hu);
             oled.println(" %");
             oled.update();
@@ -908,8 +920,8 @@ void acseler ()
     GYR = abs(gx) + abs(gy) + abs(gz);
     if (ACC > (maxACC) || GYR > maxGYR) 
       {
-        // Serial.print("ACC = ");
-        // Serial.println(ACC);
+         Serial.print("ACC = ");
+         Serial.println(maxACC);
         flagACC = 1;
         currentMillisAcc = millis();
         maxACC = ACC;
